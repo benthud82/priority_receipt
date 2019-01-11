@@ -22,3 +22,6 @@ Two ways to go detect priority receipt
 - SHIP_QTY_SD (NTPSLS)
 - TOTAVL_QTY (NPTRIF)
 
+## Created file XGBoost Template.xls
+This file will need to be updated daily and placed in at table
+MYSQL table called 
