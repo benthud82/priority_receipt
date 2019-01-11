@@ -7,7 +7,13 @@ Two ways to go detect priority receipt
   
 # Method 2 - Use the NPTRIF file as the input parameters
 ## Needed Parameters
-- TOT_ALCLOC - total allocated at location (NPTRIF)
+- WAREHOUSE (FOR ID ONLY) (NPTRIF)
+- ITEM_NUMBER  (FOR ID ONLY) (NPTRIF)
+- RECEIPT_DATE  (FOR ID ONLY) (NPTRIF)
+- PO_NUMBER (FOR ID ONLY) (NPTRIF)
+- ETRN_NUMBER (FOR ID ONLY) (NPTRIF)
+- DCI_MVTICK# (FOR ID ONLY) (NPTRIF)
+- TOT_ALCLOC (NPTRIF)
 - DAYS_FRM_SLE (NTPSLS)
 - AVGD_BTW_SLE (NTPSLS)
 - DAYS_BTW_SD (NTPSLS)
