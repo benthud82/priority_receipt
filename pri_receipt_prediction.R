@@ -13,7 +13,6 @@ query <- function(...) dbGetQuery(mychannel, ...)
 source('RMySQL_Update.R')
 
 sqlquery <- paste("SELECT 
-                  TOT_ALCLOC,
                   TOTAVL_QTY,
                   DAYS_FRM_SLE,
                   AVGD_BTW_SLE,
@@ -21,28 +20,35 @@ sqlquery <- paste("SELECT
                   SHIP_QTY_MN,
                   SHIP_QTY_SM,
                   SHIP_QTY_SD,
-                  UNITS_SHIPPED,
                   PRIORITY
                   FROM
-                  sandbox.pri_receipt;", sep = "")
+                  sandbox.pri_receipt
+                  WHERE RECEIPT_DATE <> '2019-01-14';", sep = "")
 data_pri <- query(sqlquery)
 
-set.seed(112)
+set.seed(222)
+trainIndex <- createDataPartition(data_pri$PRIORITY, 
+                                  p = .75, 
+                                  list = FALSE, 
+                                  times = 1)
 
-data_formula_pri <- PRIORITY ~ TOT_ALCLOC + TOTAVL_QTY + DAYS_FRM_SLE + AVGD_BTW_SLE + DAYS_BTW_SD + SHIP_QTY_MN + SHIP_QTY_SM + SHIP_QTY_SD + UNITS_SHIPPED - 1
+dataTrain <- data_pri[ trainIndex,]
+dataTest  <- data_pri[-trainIndex,]
 
-priX_train <- build.x(data_formula_pri, data=data_pri,
+data_formula_pri <- PRIORITY ~ TOTAVL_QTY + DAYS_FRM_SLE + AVGD_BTW_SLE + DAYS_BTW_SD + SHIP_QTY_MN + SHIP_QTY_SM + SHIP_QTY_SD - 1
+
+priX_train <- build.x(data_formula_pri, data=dataTrain,
                        contrasts=FALSE, sparse=TRUE)
 
-priY_train <- build.y(data_formula_pri, data=data_pri) %>% 
+priY_train <- build.y(data_formula_pri, data=dataTrain) %>% 
   as.integer()
 
 head(priY_train, n=100)
 
 
-priX_val <- build.x(data_formula_pri, data=data_pri,
+priX_val <- build.x(data_formula_pri, data=dataTest,
                      contrasts=FALSE, sparse=TRUE)
-priY_val <- build.y(data_formula_pri, data=data_pri) %>% 
+priY_val <- build.y(data_formula_pri, data=dataTest) %>% 
   as.integer()
 
 
@@ -55,9 +61,30 @@ xg9 <- xgb.train(
   nrounds=1000,
   eval_metric='logloss',
   watchlist=list(train=xgTrain, validate=xgVal),
+  print_every_n = 20, nthread=4,
   early_stopping_rounds=70,
   max_depth=3,
   subsample=0.5, colsample_bytree=0.5,
-  num_parallel_tree=50
+  num_parallel_tree=20
 )
+
+sqlquery <- paste("SELECT 
+                  TOTAVL_QTY,
+                  DAYS_FRM_SLE,
+                  AVGD_BTW_SLE,
+                  DAYS_BTW_SD,
+                  SHIP_QTY_MN,
+                  SHIP_QTY_SM,
+                  SHIP_QTY_SD,
+                  0 as PRIORITY
+                  FROM
+                  sandbox.pri_receipt
+                  WHERE RECEIPT_DATE = '2019-01-14';", sep = "")
+preddata <- query(sqlquery)
+#need to build preddata as build.x
+data_new <- build.x(data_formula_pri, data=preddata, contrasts = FALSE, sparse = TRUE)
+preddata$PRIORITY <- predict(xg9,newdata = data_new)
+pred_values
+
+
 
