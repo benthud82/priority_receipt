@@ -1,4 +1,4 @@
-#the training set is same as the validation set.  Need to modify based on other boosted tree examples
+#Units shipped needs to be pulled from NPTSLH file
 
 packages <- c('useful', 'coefplot', 'xgboost', 'here', 'magrittr', 'dygraphs', 'dplyr', 'RMySQL', 'caret', 'tinytex')
 purrr::walk(packages, library, character.only = TRUE)
@@ -43,7 +43,6 @@ priX_train <- build.x(data_formula_pri, data=dataTrain,
 priY_train <- build.y(data_formula_pri, data=dataTrain) %>% 
   as.integer()
 
-head(priY_train, n=100)
 
 
 priX_val <- build.x(data_formula_pri, data=dataTest,
@@ -63,7 +62,7 @@ xg9 <- xgb.train(
   watchlist=list(train=xgTrain, validate=xgVal),
   print_every_n = 20, nthread=4,
   early_stopping_rounds=70,
-  max_depth=3,
+  max_depth=5,
   subsample=0.5, colsample_bytree=0.5,
   num_parallel_tree=20
 )
@@ -84,7 +83,10 @@ preddata <- query(sqlquery)
 #need to build preddata as build.x
 data_new <- build.x(data_formula_pri, data=preddata, contrasts = FALSE, sparse = TRUE)
 preddata$PRIORITY <- predict(xg9,newdata = data_new)
-pred_values
+preddata
 
-
+data_new_test <- build.x(data_formula_pri, data=dataTest, contrasts = FALSE, sparse = TRUE)
+dataTest$PRIORITY_VAL <- predict(xg9,newdata = data_new_test)
+dataTest$PRED_DIF <- abs(dataTest$PRIORITY_VAL - dataTest$PRIORITY)
+dataTest
 
