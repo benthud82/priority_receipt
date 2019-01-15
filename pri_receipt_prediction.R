@@ -75,8 +75,12 @@ xg9 <- xgb.train(
   eta=.1,
   early_stopping_rounds=70,
   max_depth=5,
+<<<<<<< HEAD
   subsample=0.5, 
   colsample_bytree=0.5,
+=======
+  subsample=0.5, colsample_bytree=0.5,
+>>>>>>> 15675e5f8ea49a1f7ca68dcb0b5cc42bf66616d4
   num_parallel_tree=20
 )
 
