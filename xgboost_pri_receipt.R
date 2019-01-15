@@ -48,7 +48,7 @@ dataTest  <- data_pri[-trainIndex,]
 data_formula_pri <- PRIORITY ~ TOTAVL_QTY + DAYS_FRM_SLE + AVGD_BTW_SLE + DAYS_BTW_SD + SHIP_QTY_MN + SHIP_QTY_SM + SHIP_QTY_SD - 1
 
 priX_train <- build.x(data_formula_pri, data=dataTrain,
-                       contrasts=FALSE, sparse=TRUE)
+                      contrasts=FALSE, sparse=TRUE)
 
 priY_train <- build.y(data_formula_pri, data=dataTrain) %>% 
   as.integer()
@@ -56,7 +56,7 @@ priY_train <- build.y(data_formula_pri, data=dataTrain) %>%
 
 
 priX_val <- build.x(data_formula_pri, data=dataTest,
-                     contrasts=FALSE, sparse=TRUE)
+                    contrasts=FALSE, sparse=TRUE)
 priY_val <- build.y(data_formula_pri, data=dataTest) %>% 
   as.integer()
 
@@ -106,10 +106,15 @@ preddata <- query(sqlquery)
 #need to build preddata as build.x
 data_new <- build.x(data_formula_pri, data=preddata, contrasts = FALSE, sparse = TRUE)
 preddata$PRIORITY <- predict(xg9,newdata = data_new)
-preddata
+
 
 data_new_test <- build.x(data_formula_pri, data=dataTest, contrasts = FALSE, sparse = TRUE)
 dataTest$PRIORITY_VAL <- predict(xg9,newdata = data_new_test)
 dataTest$PRED_DIF <- abs(dataTest$PRIORITY_VAL - dataTest$PRIORITY)
-dataTest
+
+currentDate <- Sys.Date()
+csvFileName <- paste("pri_receipt_train","_",currentDate,".csv",sep="")
+write.csv(dataTest, file=csvFileName)
+lapply( dbListConnections( dbDriver( drv = "MySQL")), dbDisconnect)
+
 
