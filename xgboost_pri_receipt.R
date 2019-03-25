@@ -13,31 +13,37 @@ query <- function(...) dbGetQuery(mychannel, ...)
 source('RMySQL_Update.R')
 
 sqlquery <- paste("SELECT 
-                  WAREHOUSE,
-                  PO_NUMBER,
-                  ITEM_NUMBER,
-                  RECEIPT_DATE,
-                  ETRN_NUMBER,
-                  DCI_MVTICK,
-                  PACK_TYPE,
-                  TOT_ALCLOC,
-                  TOTAVL_QTY,
-                  DAYS_FRM_SLE,
-                  AVGD_BTW_SLE,
-                  DAYS_BTW_SD,
-                  SHIP_QTY_MN,
-                  SHIP_QTY_SM,
-                  SHIP_QTY_SD,
-                  UNITS_SHIPPED,
-                  AFT_REC_ALLOC,
-                  PRIORITY
+                          WAREHOUSE,
+                          PO_NUMBER,
+                          ITEM_NUMBER,
+                          RECEIPT_DATE,
+                          ETRN_NUMBER,
+                          DCI_MVTICK,
+                          DCI_LINE,
+                          PACK_TYPE, 
+                          REC_LOC,
+                          REC_QTY,
+                          REC_TIME,
+                          TOTAVL_QTY,
+                          DAYS_FRM_SLE, 
+                          AVGD_BTW_SLE,
+                          DAYS_BTW_SD,
+                          SHIP_QTY_SM,
+                          SHIP_QTY_SD,
+                          UNITS_SHIPPED, 
+                          PRIORITY,
+                          PRI_CALC,
+                          TRUE_PRI
                   FROM
-                  sandbox.pri_receipt
-                  WHERE RECEIPT_DATE <> '2019-01-15';", sep = "")
+                          sandbox.pri_receipt
+                  WHERE 
+                          RECEIPT_DATE < '2019-03-18'
+                          and DAYS_FRM_SLE <= 999
+                          AND PACK_TYPE = 'LSE';", sep = "")
 data_pri <- query(sqlquery)
 
 set.seed(222)
-trainIndex <- createDataPartition(data_pri$PRIORITY, 
+trainIndex <- createDataPartition(data_pri$TRUE_PRI, 
                                   p = .75, 
                                   list = FALSE, 
                                   times = 1)
@@ -45,7 +51,7 @@ trainIndex <- createDataPartition(data_pri$PRIORITY,
 dataTrain <- data_pri[ trainIndex,]
 dataTest  <- data_pri[-trainIndex,]
 
-data_formula_pri <- PRIORITY ~ TOTAVL_QTY + DAYS_FRM_SLE + AVGD_BTW_SLE + DAYS_BTW_SD + SHIP_QTY_MN + SHIP_QTY_SM + SHIP_QTY_SD - 1
+data_formula_pri <- TRUE_PRI ~ TOTAVL_QTY + DAYS_FRM_SLE + AVGD_BTW_SLE + DAYS_BTW_SD + SHIP_QTY_SM + SHIP_QTY_SD - 1
 
 priX_train <- build.x(data_formula_pri, data=dataTrain,
                       contrasts=FALSE, sparse=TRUE)
@@ -81,40 +87,48 @@ xg9 <- xgb.train(
 )
 
 sqlquery <- paste("SELECT 
-                  WAREHOUSE,
-                  PO_NUMBER,
-                  ITEM_NUMBER,
-                  RECEIPT_DATE,
-                  ETRN_NUMBER,
-                  DCI_MVTICK,
-                  PACK_TYPE,
-                  TOT_ALCLOC,
-                  TOTAVL_QTY,
-                  DAYS_FRM_SLE,
-                  AVGD_BTW_SLE,
-                  DAYS_BTW_SD,
-                  SHIP_QTY_MN,
-                  SHIP_QTY_SM,
-                  SHIP_QTY_SD,
-                  UNITS_SHIPPED,
-                  AFT_REC_ALLOC,
-                  0 as PRIORITY
+                          WAREHOUSE,
+                          PO_NUMBER,
+                          ITEM_NUMBER,
+                          RECEIPT_DATE,
+                          ETRN_NUMBER,
+                          DCI_MVTICK,
+                          DCI_LINE,
+                          PACK_TYPE, 
+                          REC_LOC,
+                          REC_QTY,
+                          REC_TIME,
+                          TOTAVL_QTY,
+                          DAYS_FRM_SLE, 
+                          AVGD_BTW_SLE,
+                          DAYS_BTW_SD,
+                          SHIP_QTY_SM,
+                          SHIP_QTY_SD,
+                          UNITS_SHIPPED, 
+                          PRIORITY,
+                          PRI_CALC,
+                          TRUE_PRI,
+                          0 as PRED_PRI,
+                          0 as PRED_DIF
                   FROM
                   sandbox.pri_receipt
-                  WHERE RECEIPT_DATE = '2019-01-15';", sep = "")
+                  WHERE RECEIPT_DATE >= '2019-03-18'
+                  and DAYS_FRM_SLE <= 999
+                  AND PACK_TYPE = 'LSE';", sep = "")
 preddata <- query(sqlquery)
 #need to build preddata as build.x
 data_new <- build.x(data_formula_pri, data=preddata, contrasts = FALSE, sparse = TRUE)
-preddata$PRIORITY <- predict(xg9,newdata = data_new)
+preddata$PRED_PRI <- predict(xg9,newdata = data_new)
 
 
-data_new_test <- build.x(data_formula_pri, data=dataTest, contrasts = FALSE, sparse = TRUE)
-dataTest$PRIORITY_VAL <- predict(xg9,newdata = data_new_test)
-dataTest$PRED_DIF <- abs(dataTest$PRIORITY_VAL - dataTest$PRIORITY)
+#data_new_test <- build.x(data_formula_pri, data=dataTest, contrasts = FALSE, sparse = TRUE)
+#dataTest$PRIORITY_VAL <- predict(xg9,newdata = data_new_test)
+#dataTest$PRED_DIF <- abs(dataTest$PRED_PRI - dataTest$TRUE_PRI)
+preddata$PRED_DIF <- abs(preddata$PRED_PRI - preddata$TRUE_PRI)
 
 currentDate <- Sys.Date()
 csvFileName <- paste("pri_receipt_train","_",currentDate,".csv",sep="")
-write.csv(dataTest, file=csvFileName)
+write.csv(preddata, file=csvFileName)
 lapply( dbListConnections( dbDriver( drv = "MySQL")), dbDisconnect)
 
 
