@@ -37,9 +37,12 @@ sqlquery <- paste("SELECT
                   FROM
                           sandbox.pri_receipt
                   WHERE 
+<<<<<<< HEAD
                           RECEIPT_DATE < '2019-03-18'
                           and DAYS_FRM_SLE <= 999
-                          AND PACK_TYPE = 'LSE';", sep = "")
+                          AND PACK_TYPE = 'LSE'
+                          RECEIPT_DATE < '2019-03-18';", sep = "")
+
 data_pri <- query(sqlquery)
 
 set.seed(222)
@@ -99,7 +102,7 @@ sqlquery <- paste("SELECT
                           REC_QTY,
                           REC_TIME,
                           TOTAVL_QTY,
-                          DAYS_FRM_SLE, 
+                       DAYS_FRM_SLE, 
                           AVGD_BTW_SLE,
                           DAYS_BTW_SD,
                           SHIP_QTY_SM,
@@ -112,9 +115,12 @@ sqlquery <- paste("SELECT
                           0 as PRED_DIF
                   FROM
                   sandbox.pri_receipt
+
                   WHERE RECEIPT_DATE >= '2019-03-18'
                   and DAYS_FRM_SLE <= 999
-                  AND PACK_TYPE = 'LSE';", sep = "")
+                  AND PACK_TYPE = 'LSE'
+                  WHERE RECEIPT_DATE >= '2019-03-18';", sep = "")
+
 preddata <- query(sqlquery)
 #need to build preddata as build.x
 data_new <- build.x(data_formula_pri, data=preddata, contrasts = FALSE, sparse = TRUE)
