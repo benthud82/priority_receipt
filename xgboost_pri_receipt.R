@@ -37,7 +37,7 @@ sqlquery <- paste("SELECT
                   FROM
                           sandbox.pri_receipt
                   WHERE 
-                          RECEIPT_DATE < '2019-03-19'
+                          RECEIPT_DATE < '2019-03-20'
                           and DAYS_FRM_SLE <= 999
                           AND PACK_TYPE = 'LSE';", sep = "")
 
